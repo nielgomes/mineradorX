@@ -52,7 +52,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 
 # Clone e build do llama.cpp com CUDA ativado (sem LD_LIBRARY_PATH para stubs)
-RUN pip install llama-cpp-python
+RUN pip install -U llama-cpp-python
 
 # Define diretório de trabalho da aplicação
 WORKDIR /app
