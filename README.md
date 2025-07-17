@@ -1,4 +1,4 @@
-Trata-se de uma solução para inteteração com Agentes de IA com uso de modelos .GGUF local ou com uso de modelos disponíveis no openrouter.ai.
+Trata-se de uma solução para interação com Agentes de IA com uso de modelos .GGUF local ou com uso de modelos disponíveis no openrouter.ai.
 
 Para iniciar o as interções com perguntas e respostas com o agente de IA:
 
