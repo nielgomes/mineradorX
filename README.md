@@ -1,3 +1,5 @@
+Trata-se de uma solução para inteteração com Agentes de IA com uso de modelos .GGUF local ou com uso de modelos disponíveis no openrouter.ai.
+
 Para iniciar o as interções com perguntas e respostas com o agente de IA:
 
 1- Primeiro iniciar o servidor de modelos locais e em nuvem rodando o comando ./1_run.sh dentro da pasta mineradorX
