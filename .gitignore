@@ -1,0 +1,11 @@
+# Arquivos de ambiente - Contêm segredos e não devem ser versionados
+.env
+
+# Arquivos de cache do Python
+__pycache__/
+
+# Configurações do editor Visual Studio Code
+.vscode/
+
+# Pasta root - Geralmente não deve ser incluída no controle de versão
+root/

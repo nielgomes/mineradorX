@@ -1,0 +1,29 @@
+services:
+  ia-gateway:
+    runtime: nvidia
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - /home/nielgomes/.cache/instructlab/models:/root/.cache/instructlab/models:rw
+      - ./indices_rag:/app/indices_rag:rw
+      - ./documentos_rag:/app/documentos_rag:rw
+      - ./:/app:rw
+    env_file:
+      - .env
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
+    ports:
+      - "8000:8000"
+    tty: true
+    stdin_open: true
+    working_dir: /app
+    # Configuração opcional para compatibilidade com Swarm
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
