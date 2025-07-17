@@ -34,4 +34,4 @@ fontes: essa chave recebe uma lista [] com os path e arquivo da base deconhecime
 4.2- no arquivo contexts.json vc tem que apagar a chave do nomedasuachave com as suas seguintes sub chaves: nome_exibicao e fontes, para que ele não fique aparecendo durante a seleção do item 2.2.2.
 
 5- Atualizar embeedings RAG de especialistas existentes:
-5.1- dentro da pasta mineradorX, rodar o comando python gerenciador_indices.py --acao criar --contexto nomedasuachave(do arquivo contexts.json), se você utilizar um nomedasuachave que já existe no arquivo contexts.json, o sistem atualizará o respectivo especialista e o indexará para possibilitar interações com ele considerando a atualização do sua base de conhecimento.
+5.1- dentro da pasta mineradorX, rodar o comando python gerenciador_indices.py --acao criar --contexto nomedasuachave(do arquivo contexts.json), se você utilizar um nomedasuachave que já existe no arquivo contexts.json, o sistem atualizará o respectivo especialista e o indexará para possibilitar interações com ele, considerando a atualização do sua base de conhecimento.
