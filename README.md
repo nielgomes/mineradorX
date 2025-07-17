@@ -1,6 +1,6 @@
 Trata-se de uma solução para interação com Agentes de IA com uso de modelos .GGUF local ou com uso de modelos disponíveis no openrouter.ai.
 
-Para iniciar o as interções com perguntas e respostas com o agente de IA:
+Para iniciar o as interações com perguntas e respostas com o agente de IA:
 
 1- Primeiro iniciar o servidor de modelos locais e em nuvem rodando o comando ./1_run.sh dentro da pasta mineradorX
 1.1- ao ser perguntado qual servidor vc quer utilizar como Sumarizador, se vc indicar que vc quer modelos locais (.gguf) o sistema buscará todos os modelos do tipo GGUF estão disponíveis no path ~/.cache/instructlab/models/ e disponibilizará para que vc consiga escolher um deles como seu modelo de sumarização.
@@ -19,16 +19,19 @@ Quando quiser utilizar outros modelos gguf locais, basta salva-los em ~/.cache/i
 2.2-2- modo Especialistas RAG - Trata-se de modelos especialistas em algum assunto com base em RAGs.
 2.2.2.1- o sistema iniciará o seu ambiente de interação verificará se vc possui agentes especialistas treinados com RAG e devidamente indexados com base no arquivo contexts.json. Ele pedira para que vc indique qual dos especialistas vc quer usar. 
 2.2.2.2- Se vc selecionar algum dos especialistas, o sistema perguntará se vc quer utilizar o Sumarizador, devendo responder com s ou n. Se usar o sumarizador, o sistema resumirá seu prompt + pergunta + contexto RAG, antes de perguntar para o seu modelo Principal. Se vc não utilizar o sumarizador o prompt + pergunta + contexto RAG diretamente para o modelo Princialm sem passar por uma sumarização.
-2.2.3- modo Analizar Documentos - Este modo só funciona com modelo Princial seja um modelo em nuvem. Esse modo não funciona com modelos locais.
+2.2.3- modo Analizar Documentos - Este modo só funciona com modelo Princial seja um modelo em nuvem no openrouter. Esse modo não funciona com modelos locais.
 2.2.3.1- ele se baseia no arquivo context.json na chave df_openrouter, na lista de fonte basta informar o path e nome dos arquivos do tipo texto (txt ou json) ou tipo pdf.
 
 3- Criar embeedings RAG e especialistas para interagirem no modo especialista:
-3.1- no arquivo contexts.json inserir/criar uma chave com as seguintes sub chaves: nome_exibicao e fontes.
-3.2- após criado a chave e suas subchaves, dentro da pasta mineradorX, rodar o comando python gerenciador_indices --acao criar --contexto nomedasuachave, o sistem criará o novo especialista e o indexará para possibilitar interações com ele.
+3.1- no arquivo contexts.json inserir/criar uma chave com as seguintes sub chaves: nome_exibicao e fontes (pode ser uma lista de URLs ou uma lista de arquivos TXT como base de conhecimento).
+nomedasuachave: um alias para a sua chave dentro do contexts.json, ela servirá para vc mapea-la durante o uso do gerenciador_indices.py esse alias será o parametro --contexto nomedasuachave
+nome_exibicao: esse é o nome do especialista que aparecerá para vc escolher no modo Especialista (item 2.2.2)
+fontes: essa chave recebe uma lista [] com os path e arquivo da base deconhecimento, podendo ser arquivos TXT ou URL da internet. 
+3.2- após criado a chave e suas subchaves, dentro da pasta mineradorX, rodar o comando python gerenciador_indices --acao criar --contexto nomedasuachave, o sistema criará o novo especialista e o indexará com os indices RAG do banco de dados vetorial para possibilitar interações com ele. A persistência dos banco de dados vetorial (FAISS) é pasta indices_rag, nela são salvos os indices de base de conhecimento dos seus especialistas.
 
 4- Apagar embeedings RAG e especialistas:
-4.1- dentro da pasta mineradorX, rodar o comando python gerenciador_indices --acao deletar --contexto nomedasuachave, o sistem apagará as pastas de indices dp especialista.
-4.2- no arquivo contexts.json apagar a chave com as suas seguintes sub chaves: nome_exibicao e fontes, para que ele não fique aparecendo durante a seleção do item 2.
+4.1- dentro da pasta mineradorX, rodar o comando python gerenciador_indices --acao deletar --contexto nomedasuachave(do arquivo contexts.json), o sistem apagará as pastas de indices do especialista que fica dentro da pasta indices_rag.
+4.2- no arquivo contexts.json vc tem que apagar a chave do nomedasuachave com as suas seguintes sub chaves: nome_exibicao e fontes, para que ele não fique aparecendo durante a seleção do item 2.2.2.
 
 5- Atualizar embeedings RAG de especialistas existentes:
-5.1- dentro da pasta mineradorX, rodar o comando python gerenciador_indices --acao criar --contexto nomedasuachave(do arquivo contexts.json), o sistem atualizará o especialista e o indexará para possibilitar interações com ele.
+5.1- dentro da pasta mineradorX, rodar o comando python gerenciador_indices.py --acao criar --contexto nomedasuachave(do arquivo contexts.json), se você utilizar um nomedasuachave que já existe no arquivo contexts.json, o sistem atualizará o respectivo especialista e o indexará para possibilitar interações com ele considerando a atualização do sua base de conhecimento.
