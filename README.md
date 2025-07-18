@@ -3,6 +3,12 @@
 
 ### INSTALAÇÃO:
 
+Requisitos:
+- Possuir placa de vídeo Nvidia na maquina host do container
+- Estar com os drives da placa de vídeo atualizados
+- Instalar o toolkit CUDA na maquina host do container
+- Testado em uma maquina com Windows 11 com container rodando no WSL Ubuntu e placa de vídeo Nvidia RTX 4060.
+
 a) criar um arquivo .env na pasta do projeto mineradorX contendo:
 ```
 # Chave da API do OpenRouter
