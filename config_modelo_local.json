@@ -1,13 +1,13 @@
 {
   "servicos": {
     "sumarizador": {
-      "tipo": "local",
+      "tipo": "nuvem",
       "path_gguf": "/root/.cache/instructlab/models/merlinite-7b-lab-Q4_K_M.gguf",
-      "id_openrouter": "qwen/qwen3-235b-a22b-04-28:free"
+      "id_openrouter": "2"
     },
     "gerador_principal": {
       "tipo": "nuvem",
-      "path_gguf": "/root/.cache/instructlab/models/Meta-Llama-3.1-8B-Claude-Q6_K.gguf",
+      "path_gguf": "/root/.cache/instructlab/models/merlinite-7b-lab-Q4_K_M.gguf",
       "id_openrouter": "deepseek/deepseek-chat:free"
     }
   },

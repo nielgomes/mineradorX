@@ -1,3 +1,15 @@
+INSTALAÇÃO:
+
+a) criar um arquivo .env na pasta do projeto mineradorX contendo:
+# Chave da API do OpenRouter
+OPENROUTER_API_KEY="sua chave api do openrouter.ai"
+b) entrar na pasta do projeto mineradorX e rodar o comando:
+docker compose up --build -d
+c) após criação da imagem e a configuração do docker, digite o comando a seguir no terminal e vá para o item 1:
+docker compose exec ia-gateway /bin/bash
+d) após carregado o servidor item c, abra um novo terminal e digite o comando e vá para o item 2:
+docker compose exec ia-gateway /bin/bash
+
 Trata-se de uma solução para interação com Agentes de IA com uso de modelos .GGUF local ou com uso de modelos disponíveis no openrouter.ai.
 
 Para iniciar o as interações com perguntas e respostas com o agente de IA:

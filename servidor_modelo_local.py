@@ -144,7 +144,17 @@ async def execute_request(service_name: str, prompt_final: str):
 
 @app.post("/sumarizar")
 async def endpoint_sumarizar(request: RagRequest):
-    prompt_final = PROMPTS_CONFIG["sumarizacao_local"]["template"].format(pergunta=request.pergunta, contexto_completo=request.contexto)
+    service_config = CONFIG.get("servicos", {}).get("sumarizador", {})
+    service_type = service_config.get("tipo")
+
+    if service_type == 'local':
+        template = PROMPTS_CONFIG["sumarizacao_local"]["template"]
+    else:
+        # Usa o novo template para a nuvem
+        template = PROMPTS_CONFIG["sumarizacao_nuvem"]["template"]
+    
+    prompt_final = template.format(pergunta=request.pergunta, contexto_completo=request.contexto)
+    
     return await execute_request("sumarizador", prompt_final)
 
 @app.post("/gerar")
