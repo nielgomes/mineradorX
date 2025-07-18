@@ -4,6 +4,7 @@
 ### INSTALAÇÃO:
 
 Requisitos:
+- Docker Compose (a V2) - versão mais moderna do Docker Compose (a V2), que funciona como um plugin direto do Docker e é invocada com docker compose (sem o hífen).
 - Possuir placa de vídeo Nvidia na maquina host do container
 - Estar com os drives da placa de vídeo atualizados
 - Instalar o toolkit CUDA na maquina host do container
