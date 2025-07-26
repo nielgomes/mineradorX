@@ -31,7 +31,7 @@ e vá para o item 2
  
 2- Para interagir com o modelo escolhido:
 
-2.1- espere o container subir, depois de concluído o processo do servidor, `docker compose exec ia_gateway /bin/bash` e depois rodar o comando `python assistente_contextual.py`
+2.1- espere o container subir, depois de concluído o processo do servidor, `docker compose exec ia_gateway /bin/bash` e depois rodar o comando `./2_chat.sh`
 
 2.2- inicie a interação conforme orietações em tela.
 
