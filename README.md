@@ -40,3 +40,50 @@ e vá para o item 2
 3.1- É o arquivo de meta-prompt para construção de prompt técnico para uso durante as interações com o Agente. Fique a vontade para customizá-lo conforme a sua necessidade.
 
 4- Após cada alteração que, por ventura, vc fizer nos aquivos, vc deve parar o container `docker compose down` e subí-lo novamente `docker compose up --build -d`.
+
+# mineradorX only cloud (English)
+
+## This is a solution for interacting with AI Agents using models available on openrouter.ai.
+
+### INSTALLATION:
+
+**Requirements:**
+- Docker Compose (V2) - the more modern version of Docker Compose (V2), which functions as a direct Docker plugin and is invoked with `docker compose` (without the hyphen).
+- If you want to change the cloud model before building the image, go to item 1, then return to letter a).
+
+**Initial Procedures:**
+
+a) Create a `.env` file in the mineradorX project folder containing:
+```
+#OpenRouter API Key
+
+OPENROUTER_API_KEY="your openrouter.ai api key"
+```
+b) Enter the mineradorX project folder and run the command:
+
+`docker compose up --build -d`
+
+c) After the image has been created and Docker is configured, type the following command in the terminal:
+```
+docker compose exec ia_gateway /bin/bash
+```
+and then proceed to item 2.
+
+### To start the question and answer interactions with the AI agent:
+
+**1- `config_modelo_local.json` File**
+
+1.1- This file is responsible for specifying which Main model you will use for interaction. If you want to change the Main General cloud model (openrouter) to be your **Main/General** model, the system will default to the `deepseek/deepseek-chat:free` model. If you wish to specify another model, simply go to the <https://openrouter.ai/models> portal, choose a model, copy its name (in the `deepseek/deepseek-chat:free` format), and replace it in the **id_openrouter** key of the **gerador_principal** key in the `config_modelo_local.json` file. Be aware that some models are paid.
+
+**2- To interact with the chosen model:**
+
+2.1- Wait for the container to start up. After the server process is complete, run `docker compose exec ia_gateway /bin/bash` and then run the command `./2_chat.sh`.
+
+2.2- Begin the interaction according to the on-screen instructions.
+
+**3- `prompts.json` File**
+
+3.1- This is the meta-prompt file for constructing a technical prompt for use during interactions with the Agent. Feel free to customize it to your needs.
+
+**4- After any changes you might make to the files, you must stop the container with `docker compose down` and start it up again with `docker compose up --build -d`.**
+
