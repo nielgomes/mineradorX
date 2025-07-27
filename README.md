@@ -19,7 +19,7 @@ b) entrar na pasta do projeto mineradorX e rodar o comando:
 
 c) após criação da imagem e a configuração do docker, digite o comando a seguir no terminal:
 ```
-docker compose exec ia_gateway /bin/bash
+./2_chat.sh
 ```
 e vá para o item 2
 
@@ -31,7 +31,7 @@ e vá para o item 2
  
 2- Para interagir com o modelo escolhido:
 
-2.1- espere o container subir, depois de concluído o processo do servidor, `docker compose exec ia_gateway /bin/bash` e depois rodar o comando `./2_chat.sh`
+2.1- espere o container subir, depois de concluído o processo do servidor e rode o comando `./2_chat.sh`
 
 2.2- inicie a interação conforme orietações em tela.
 

@@ -9,4 +9,4 @@ echo "   Para sair da interação digite 'sair'."
 echo "--------------------------------------------------------"
 
 # Executa o script Python diretamente
-python assistente_contextual.py
+docker compose exec ia_gateway /bin/bash -c "python assistente_contextual.py"
