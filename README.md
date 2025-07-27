@@ -65,7 +65,7 @@ b) Enter the mineradorX project folder and run the command:
 
 c) After the image has been created and Docker is configured, type the following command in the terminal:
 ```
-docker compose exec ia_gateway /bin/bash
+./2_chat.sh
 ```
 and then proceed to item 2.
 
@@ -77,7 +77,7 @@ and then proceed to item 2.
 
 **2- To interact with the chosen model:**
 
-2.1- Wait for the container to start up. After the server process is complete, run `docker compose exec ia_gateway /bin/bash` and then run the command `./2_chat.sh`.
+2.1- Wait for the container to start up. After the server process is complete and then run the command `./2_chat.sh`.
 
 2.2- Begin the interaction according to the on-screen instructions.
 
