@@ -1,10 +1,28 @@
 services:
-  ia_gateway:
+  servidor:
     build: .
-    # O comando agora inicia o novo script do servidor diretamente
-    command: uvicorn servidor_gateway_nuvem:app --host 0.0.0.0 --port 8000
+    # O --reload agora funcionará perfeitamente com os volumes
+    command: uvicorn src.reels_agent.servidor:app --host 0.0.0.0 --port 8000 --reload
     env_file:
       - .env
     ports:
       - "8000:8000"
-    working_dir: /app
+    volumes:
+      # CORREÇÃO: Mapeia o código-fonte e as configs para dentro do contêiner.
+      # Isso garante que qualquer alteração nos arquivos Python seja refletida imediatamente.
+      - ./src:/app/src
+      - ./config:/app/config
+
+  cliente:
+    build: .
+    command: python -m src.reels_agent.cliente
+    depends_on:
+      - servidor
+    tty: true
+    stdin_open: true
+    env_file:
+      - .env
+    volumes:
+      # O cliente também precisa "ver" as pastas de código e config em tempo real
+      - ./src:/app/src
+      - ./config:/app/config

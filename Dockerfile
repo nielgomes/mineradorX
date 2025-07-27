@@ -6,12 +6,15 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONIOENCODING=UTF-8 \
     LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
+    LC_ALL=C.UTF-8 \
+    PYTHONPATH=/app
 
-# Instala apenas as dependências de sistema mínimas (git para o pip)
+# O apt-get agora é mínimo, não precisamos de Chrome nem git
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
     && rm -rf /var/lib/apt/lists/*
+
+# Define o diretório de trabalho da aplicação
+WORKDIR /app
 
 # Atualiza pip e instala as dependências Python
 RUN pip install --upgrade pip
@@ -21,13 +24,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Baixa os pacotes de dados do NLTK
 RUN python -m nltk.downloader punkt stopwords wordnet omw-1.4 averaged_perceptron_tagger
 
-# Define o diretório de trabalho da aplicação
-WORKDIR /app
-
-# Copia o código da aplicação
-COPY . .
-
-# Deixa os scripts executáveis
+# Copia o código-fonte e as configurações para dentro da imagem
+COPY ./src /app/src
+COPY ./config /app/config
+COPY 2_chat.sh .
 RUN chmod +x ./*.sh
 
 # Porta exposta para acesso externo
