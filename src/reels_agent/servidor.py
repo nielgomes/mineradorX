@@ -112,7 +112,7 @@ async def gerar_roteiro_reels(request: UrlRequest):
     roteiros_finais = []
     
     for url in request.product_urls:
-        dados_produto = await asyncio.to_thread(scrape_shopee_product, url)
+        dados_produto = await scrape_shopee_product(url)
         
         if not dados_produto:
             roteiros_finais.append({"source_url": url, "error": "Falha ao coletar dados do produto."})

@@ -9,3 +9,5 @@ Requests==2.32.4
 uvicorn[standard]
 # para uso com shopee_scrapy
 beautifulsoup4
+playwright
+playwright-stealth==1.0.6

@@ -1,115 +1,122 @@
-# src/reels_agent/scraper.py
-
-import os
+import re
 import json
-import requests
-import time
-from typing import Dict, Optional
-from bs4 import BeautifulSoup
-from dotenv import load_dotenv
+import httpx
+from typing import Dict, Optional, Tuple
+from playwright.async_api import async_playwright
+from playwright_stealth import stealth_async # Importamos nossa ferramenta de camuflagem
 
-# Carrega as variáveis de ambiente
-load_dotenv()
+def extract_shopee_ids(url: str) -> Optional[Tuple[str, str]]:
+    """Extrai o shop_id e o item_id de uma URL da Shopee de forma mais robusta."""
+    match = re.search(r'-i\.(\d+)\.(\d+)', url)
+    if match:
+        shop_id, item_id = match.groups()
+        return shop_id, item_id
+    match = re.search(r'/product/(\d+)/(\d+)', url)
+    if match:
+        shop_id, item_id = match.groups()
+        return shop_id, item_id
+    return None
 
-def scrape_shopee_product(url: str) -> Optional[Dict]:
+async def scrape_shopee_product(url: str) -> Optional[Dict]:
     """
-    Função refatorada para usar o Async Scraper da ScraperAPI,
-    com lógica de parsing de JSON mais robusta.
+    Implementa a estratégia de ataque híbrido com camuflagem (stealth) e diagnóstico.
     """
-    SCRAPERAPI_KEY = os.getenv("SCRAPERAPI_KEY")
-    if not SCRAPERAPI_KEY:
-        print("❌ ERRO: Chave da ScraperAPI não encontrada no arquivo .env.")
-        return None
-
-    job_submission_payload = {
-        'apiKey': SCRAPERAPI_KEY,
-        'urls': [url],
-        'apiParams': { 'render': 'true', 'country_code': 'br' }
-    }
+    print(f"\n-> Iniciando raspagem CAMUFLADA para a URL: {url}")
     
-    print(f"-> Submetendo trabalho de scraping para a ScraperAPI: {url}")
-
-    try:
-        submit_response = requests.post('https://async.scraperapi.com/jobs', json=job_submission_payload, timeout=60)
-        submit_response.raise_for_status()
-        job_data = submit_response.json()
-        status_url = job_data.get("statusUrl")
-
-        if not status_url:
-            print(f"❌ ERRO: A API não retornou uma URL de status. Resposta: {job_data}")
-            return None
-
-        print(f"   -> Trabalho submetido. Aguardando o resultado em: {status_url}")
-        time.sleep(45)
-
-        for attempt in range(3):
-            result_response = requests.get(status_url, timeout=60)
-            result_data = result_response.json()
-
-            if result_data.get("status") == 'finished':
-                print("   -> Trabalho concluído! Processando o HTML...")
-                html_content = result_data['response']['body']
-                soup = BeautifulSoup(html_content, 'html.parser')
-                
-                script_tag = soup.find("script", type="application/ld+json")
-                if not script_tag:
-                    print("❌ ERRO: O HTML foi retornado, mas os dados estruturados (JSON-LD) não foram encontrados.")
-                    return None
-                
-                json_ld_data = json.loads(script_tag.string)
-                
-                product_info = None
-                if isinstance(json_ld_data, list):
-                    for item in json_ld_data:
-                        if isinstance(item, dict) and item.get('@type') == 'Product':
-                            product_info = item
-                            break
-                elif isinstance(json_ld_data, dict) and json_ld_data.get('@type') == 'Product':
-                    product_info = json_ld_data
-
-                if not product_info:
-                    print("❌ ERRO: Objeto do tipo 'Product' não encontrado nos dados estruturados.")
-                    return None
-
-                # --- INÍCIO DA CORREÇÃO FINAL ---
-                # Lógica "defensiva" para extrair os dados
-                
-                offers_data = product_info.get('offers', {})
-                # Se 'offers' for uma lista, pega o primeiro item
-                if isinstance(offers_data, list) and offers_data:
-                    offers_data = offers_data[0]
-                
-                rating_data = product_info.get('aggregateRating', {})
-                # Se 'aggregateRating' for uma lista, pega o primeiro item
-                if isinstance(rating_data, list) and rating_data:
-                    rating_data = rating_data[0]
-
-                product_data = {
-                    "source_url": url,
-                    "title": product_info.get("name", "Título não encontrado"),
-                    "price": f"{offers_data.get('priceCurrency', '')} {offers_data.get('price', 'Preço não encontrado')}",
-                    "rating_score": f"{rating_data.get('ratingValue', 'N/A')} estrelas",
-                    "review_count": f"{rating_data.get('reviewCount', '0')} avaliações",
-                    "description": product_info.get("description", "Descrição não encontrada.").replace('\n', ' ')
-                }
-                # --- FIM DA CORREÇÃO FINAL ---
-                
-                print("✅ Dados do produto extraídos com sucesso via Async ScraperAPI!")
-                return product_data
+    async with async_playwright() as p:
+        browser = None # Inicializa a variável do browser
+        try:
+            # --- FASE 1: INFILTRAÇÃO COM PLAYWRIGHT E STEALTH ---
+            print("   -> Fase 1: Lançando navegador camuflado...")
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+            )
+            page = await context.new_page()
             
-            elif result_data.get("status") == 'failed':
-                print(f"❌ ERRO: O trabalho de scraping falhou. Motivo: {result_data.get('failReason', 'desconhecido')}")
+            # ** APLICA A CAMUFLAGEM ANTES DE QUALQUER NAVEGAÇÃO **
+            await stealth_async(page)
+
+            print("   -> Navegando para a página do produto...")
+            await page.goto(url, timeout=60000, wait_until='domcontentloaded')
+
+            # ** LÓGICA DE DIAGNÓSTICO E ESPERA **
+            try:
+                # Aumentamos o timeout e esperamos por um seletor mais genérico primeiro
+                print("   -> Aguardando o carregamento dinâmico da página...")
+                await page.wait_for_selector('div[class*="page-product"]', timeout=45000)
+                print("   -> Seletor do produto encontrado. Página principal carregada.")
+            except Exception as e:
+                # Se o seletor não for encontrado, salvamos um screenshot para diagnóstico
+                screenshot_path = "shopee_debug_screenshot.png"
+                await page.screenshot(path=screenshot_path, full_page=True)
+                print(f"❌ ERRO: O seletor esperado não foi encontrado (Timeout).")
+                print(f"   -> A página pode ter um CAPTCHA ou layout inesperado.")
+                print(f"   -> Screenshot de depuração salvo em: {screenshot_path}")
+                raise e # Propaga o erro para ser capturado pelo bloco principal
+
+            print("   -> Extraindo cookies...")
+            cookies = await context.cookies()
+            
+            if not cookies:
+                print("❌ ERRO: Não foi possível obter cookies mesmo com a página carregada.")
                 return None
 
-            print(f"   -> O trabalho ainda está em andamento (status: {result_data.get('status')}). Tentando novamente em 15 segundos...")
-            time.sleep(15)
+            csrf_token_cookie = next((cookie for cookie in cookies if cookie['name'] == 'csrftoken'), None)
+            if not csrf_token_cookie:
+                print("❌ ERRO: 'csrftoken' não encontrado nos cookies extraídos.")
+                return None
+            
+            csrf_token = csrf_token_cookie['value']
+            print(f"   -> Cookie 'csrftoken' obtido com sucesso: ...{csrf_token[-6:]}")
+            
+            # --- FASE 2: EXTRAÇÃO COM HTTPX ---
+            print("   -> Fase 2: Preparando cliente HTTP com os cookies obtidos...")
+            ids = extract_shopee_ids(page.url)
+            if not ids:
+                print(f"❌ ERRO: Não foi possível extrair IDs da URL final: {page.url}")
+                return None
+            shop_id, item_id = ids
 
-        print("❌ ERRO: O trabalho de scraping não foi concluído a tempo.")
-        return None
+            async with httpx.AsyncClient(cookies={c['name']: c['value'] for c in cookies}) as client:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrf_token,
+                    'Referer': page.url,
+                }
+                client.headers.update(headers)
+                
+                api_url = f"https://shopee.com.br/api/v4/item/get?itemid={item_id}&shopid={shop_id}"
+                print(f"   -> Acessando a API interna com sessão validada...")
+                
+                api_response = await client.get(api_url)
+                api_response.raise_for_status()
+                json_data = api_response.json()
 
-    except requests.exceptions.RequestException as e:
-        print(f"❌ ERRO ao conectar com a ScraperAPI: {e}")
-        return None
-    except Exception as e:
-        print(f"❌ ERRO inesperado durante a coleta de dados com a ScraperAPI: {e}")
-        return None
+                if json_data.get('error') or not json_data.get('data'):
+                    error_msg = json_data.get('error_msg', 'Resposta da API vazia ou com erro.')
+                    print(f"❌ ERRO da API: {error_msg}")
+                    return None
+
+                item_data = json_data.get('data', {})
+                product_data = {
+                    "source_url": url,
+                    "title": item_data.get("name", "Título não encontrado"),
+                    "price": f"R$ {item_data.get('price', 0) / 100000.0:.2f}",
+                    "rating_score": f"{item_data.get('item_rating', {}).get('rating_star', 0):.1f} estrelas",
+                    "units_sold": f"{item_data.get('historical_sold', 0)} vendidos", 
+                    "description": item_data.get("description", "Descrição não encontrada").replace('\n', ' ').strip()
+                }
+                
+                print("✅ Dados do produto extraídos com sucesso via ATAQUE HÍBRIDO CAMUFLADO!")
+                return product_data
+
+        except Exception as e:
+            print(f"❌ ERRO GERAL durante a raspagem híbrida: {e}")
+            return None
+        finally:
+            # Garante que o navegador seja sempre fechado
+            if browser:
+                await browser.close()
