@@ -18,4 +18,4 @@ echo "   docker compose exec ia-gateway ./2_chat.sh"
 echo "--------------------------------------------------------"
 
 # Inicia o servidor diretamente
-uvicorn servidor_modelo_local:app --reload --host 0.0.0.0
+docker compose exec ia-gateway /bin/bash -c "uvicorn servidor_modelo_local:app --reload --host 0.0.0.0"

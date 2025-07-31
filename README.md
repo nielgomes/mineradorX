@@ -18,13 +18,13 @@ OPENROUTER_API_KEY="sua chave api do openrouter.ai"
 b) entrar na pasta do projeto mineradorX e rodar o comando:
 `docker compose up --build -d`
 
-c) após criação da imagem e a configuração do docker, digite o comando a seguir no terminal e vá para o item 1:
+c) após criação da imagem e a configuração do docker, digite o comando a seguir no terminal para iniciar o servidor de modelos e vá para o item 1 para mais detalhes:
 ```
-docker compose exec ia-gateway /bin/bash
+./1_run.sh
 ```
-d) após carregado o servidor item c, abra um novo terminal e digite o comando abaixo e vá para o item 2:
+d) após carregado o servidor item c, abra um novo terminal e digite o comando abaixo para interagir com os seus modelos e vá para o item 2 para mais detalhes:
 ```
-docker compose exec ia-gateway /bin/bash
+./2_chat.sh
 ```
 ### Para iniciar o as interações com perguntas e respostas com o agente de IA:
 
