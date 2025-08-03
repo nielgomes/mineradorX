@@ -14,12 +14,19 @@ WORKDIR /app
 
 # Instala dependências Python primeiro
 COPY requirements.txt .
+
+# --- PASSO DE DEBUG 1 ---
+# Mostra o conteúdo do requirements.txt que o Docker está vendo.
+#RUN echo "--- Verificando o conteúdo de requirements.txt ---" && cat requirements.txt && echo "---------------------------------------------"
+
+
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Instala as dependências do sistema para o Playwright e os navegadores
-# Esta é a etapa crucial para a nova estratégia
-RUN playwright install --with-deps
+# --- PASSO DE DEBUG 2 ---
+# Mostra a lista de pacotes que foram realmente instalados.
+#RUN echo "--- Verificando os pacotes instalados com pip list ---" && pip list && echo "----------------------------------------------------"
+
 
 # Baixa os pacotes de dados do NLTK
 RUN python -m nltk.downloader punkt stopwords wordnet omw-1.4 averaged_perceptron_tagger

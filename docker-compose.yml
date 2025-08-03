@@ -12,7 +12,9 @@ services:
       # Isso garante que qualquer alteração nos arquivos Python seja refletida imediatamente.
       - ./src:/app/src
       - ./config:/app/config
-
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
   cliente:
     build: .
     command: python -m src.reels_agent.cliente

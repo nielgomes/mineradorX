@@ -2,14 +2,12 @@
 
 import os
 import json
-import asyncio
 import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from typing import List
 
-# Importa o nosso scraper
-from src.reels_agent.scraper import scrape_shopee_product
+# O import do scraper foi removido, pois ele não é mais usado.
+# from src.reels_agent.scraper import scrape_shopee_product
 
 # --- Carregamento de Configurações ---
 print("-> Iniciando o Servidor do Mago dos Reels...")
@@ -23,47 +21,44 @@ except FileNotFoundError as e:
     print(f"❌ ERRO CRÍTICO: Não foi possível encontrar o arquivo de configuração {e.filename}. Encerrando.")
     exit()
 
-# --- Modelos Pydantic para as Requisições da API ---
-class UrlRequest(BaseModel):
-    product_urls: List[str] = Field(..., example=["https://shopee.com.br/produto-exemplo-aqui"])
+# --- NOVO Modelo Pydantic para a Requisição ---
+# Agora esperamos os dados do produto, não apenas uma URL.
+class ProductInput(BaseModel):
+    source_url: str = Field(..., example="https://shopee.com.br/produto-exemplo")
+    title: str = Field(..., example="Título incrível do produto")
+    description: str = Field(..., example="Descrição detalhada e persuasiva do produto.")
 
 # --- Inicialização do FastAPI ---
 app = FastAPI(
     title="API do Mago dos Reels",
-    description="Um serviço para transformar URLs da Shopee em roteiros virais para o Instagram Reels.",
-    version="1.0"
+    description="Um serviço para transformar dados de produtos em roteiros virais para o Instagram Reels.",
+    version="2.0" # Nova versão do projeto
 )
 
-# --- Funções Auxiliares ---
+# --- Funções Auxiliares (A mesma lógica de prompt) ---
 def construir_prompt_final(dados_produto: dict) -> str:
     """
-    Combina as partes relevantes do "Prompt Mestre" com os dados do produto
-    para criar uma instrução clara e direta para a IA.
+    Combina as partes OTIMIZADAS do prompt com os dados do produto.
     """
     persona = PROMPTS_CONFIG.get("persona", {})
     output_protocol = PROMPTS_CONFIG.get("output_generation_protocol", {})
     final_mandate = PROMPTS_CONFIG.get("final_review_mandate", "")
     
+    # Converte o dicionário de dados do produto em uma string legível
     contexto_produto = "\n".join([f"- {chave}: {valor}" for chave, valor in dados_produto.items()])
 
+    # Monta um prompt muito mais enxuto e direto
     prompt_completo = f"""
-### PERSONA:
-Você é '{persona.get('nickname', 'Mestre dos Reels')}', um {persona.get('role', 'copywriter de elite')}.
-Sua crença principal é: "{persona.get('core_belief', '')}".
-Seu objetivo é analisar os dados de um produto e criar um roteiro de vídeo curto e irresistível para o Instagram Reels, com foco total em conversão.
+### INSTRUÇÕES:
+- **Sua Persona:** {persona.get('role', '')}
+- **Tarefa:** Analise os dados brutos do produto abaixo e crie um roteiro para um vídeo no Instagram Reels.
+- **Regra Final:** {final_mandate}
 
-### DADOS BRUTOS DO PRODUTO PARA ANÁLISE:
+### DADOS BRUTOS DO PRODUTO:
 {contexto_produto}
 
-### PROTOCOLO DE SAÍDA:
-Sua resposta final DEVE SER um único objeto JSON. NÃO inclua nenhuma outra palavra ou explicação antes ou depois do JSON.
-O objeto JSON deve ter a seguinte estrutura:
+### ESTRUTURA DE SAÍDA JSON OBRIGATÓRIA:
 {json.dumps(output_protocol.get('object_structure', {}), indent=2, ensure_ascii=False)}
-
-### REVISÃO FINAL OBRIGATÓRIA:
-{final_mandate}
-
-Agora, com base nos dados do produto fornecido, gere a saída JSON.
 """
     return prompt_completo.strip()
 
@@ -74,10 +69,16 @@ async def execute_openrouter_request(prompt_final: str) -> dict:
 
     service_config = CONFIG.get("servicos", {}).get("gerador_principal", {})
     model_id = service_config.get("id_openrouter")
-    if not model_id:
-        raise HTTPException(status_code=404, detail="ID do modelo OpenRouter não encontrado para o serviço 'gerador_principal'.")
-
-    headers = {"Authorization": f"Bearer {OPENROUTER_KEY}"}
+    
+    # --- CABEÇALHOS ENRIQUECIDOS ---
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_KEY}",
+        # Informa à OpenRouter a origem da requisição (boa prática)
+        "HTTP-Referer": "https://github.com/seu-usuario/reels-shopee", 
+        # Identifica sua aplicação (substitua pelo nome do seu projeto)
+        "X-Title": "MagoDosReels",
+    }
+    
     params_inferencia = CONFIG.get("parametros_inferencia_padrao", {})
     
     json_data = {
@@ -88,48 +89,38 @@ async def execute_openrouter_request(prompt_final: str) -> dict:
     }
 
     try:
-        async with httpx.AsyncClient() as client:
+        # Aumentamos o timeout como uma garantia extra
+        async with httpx.AsyncClient(timeout=600.0) as client:
             print(f"\n-> Enviando análise para o modelo: {model_id}...")
-            response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=json_data, timeout=300)
+            response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=json_data)
             response.raise_for_status()
             data = response.json()
-            
             content_str = data['choices'][0]['message']['content']
             return json.loads(content_str)
-            
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=408, detail="A requisição para a OpenRouter expirou (Timeout). O modelo pode estar sobrecarregado ou a rede instável.")
     except httpx.HTTPStatusError as e:
-        print(f"❌ DETALHE DO ERRO DA API: {e.response.text}")
         raise HTTPException(status_code=e.response.status_code, detail=f"Erro da API do OpenRouter: {e.response.text}")
-    except (json.JSONDecodeError, KeyError) as e:
-        print(f"❌ ERRO: A IA não retornou um JSON válido. Resposta recebida: {content_str}")
-        raise HTTPException(status_code=500, detail="A resposta da IA não estava no formato JSON esperado.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro inesperado na chamada do serviço de nuvem: {e}")
 
-# --- Endpoint Principal da API ---
-@app.post("/gerar_roteiro_reels", summary="Gera Roteiros de Reels a partir de URLs da Shopee")
-async def gerar_roteiro_reels(request: UrlRequest):
-    roteiros_finais = []
+# --- Endpoint Principal Simplificado ---
+@app.post("/gerar_roteiro_reels", summary="Gera Roteiro de Reels a partir de dados manuais")
+async def gerar_roteiro_reels(request: ProductInput):
+    # A lógica de scraping e o loop foram removidos.
+    # Agora processamos uma entrada de cada vez.
     
-    for url in request.product_urls:
-        dados_produto = await scrape_shopee_product(url)
-        
-        if not dados_produto:
-            roteiros_finais.append({"source_url": url, "error": "Falha ao coletar dados do produto."})
-            continue
+    # Construímos o dicionário de dados diretamente da requisição.
+    dados_produto = {
+        "source_url": request.source_url,
+        "title": request.title,
+        "description": request.description
+    }
 
-        prompt_final = construir_prompt_final(dados_produto)
-        
-        # --- INÍCIO DA ADIÇÃO PARA DEBUG ---
-        print("\n" + "="*20 + " INÍCIO DO PROMPT ENVIADO " + "="*20)
-        print(prompt_final)
-        print("="*22 + " FIM DO PROMPT ENVIADO " + "="*23 + "\n")
-        # --- FIM DA ADIÇÃO PARA DEBUG ---
-
-        try:
-            roteiro_gerado = await execute_openrouter_request(prompt_final)
-            roteiros_finais.append(roteiro_gerado)
-        except HTTPException as e:
-            roteiros_finais.append({"source_url": url, "error": f"Falha na geração pela IA: {e.detail}"})
-
-    return roteiros_finais
+    prompt_final = construir_prompt_final(dados_produto)
+    
+    try:
+        roteiro_gerado = await execute_openrouter_request(prompt_final)
+        return roteiro_gerado
+    except HTTPException as e:
+        return {"source_url": request.source_url, "error": f"Falha na geração pela IA: {e.detail}"}
