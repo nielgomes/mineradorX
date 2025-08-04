@@ -70,6 +70,10 @@ async def execute_openrouter_request(prompt_final: str) -> dict:
     service_config = CONFIG.get("servicos", {}).get("gerador_principal", {})
     model_id = service_config.get("id_openrouter")
     
+    # Adicionando uma verificação explícita para o bug
+    if not model_id:
+        raise HTTPException(status_code=500, detail="BUG DETECTADO: O 'id_openrouter' não foi encontrado ou é nulo no arquivo de configuração. Verifique o caminho e o conteúdo de 'config_modelo_local.json'.")
+    
     # --- CABEÇALHOS ENRIQUECIDOS ---
     headers = {
         "Authorization": f"Bearer {OPENROUTER_KEY}",
