@@ -1,13 +1,13 @@
-# src/reels_agent/servidor.py
+# src/reels_agent/servidor.py (VERSÃO REVERTIDA PARA ENTRADA MANUAL)
 
 import os
 import json
 import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from typing import List
 
 # O import do scraper foi removido, pois ele não é mais usado.
-# from src.reels_agent.scraper import scrape_shopee_product
 
 # --- Carregamento de Configurações ---
 print("-> Iniciando o Servidor do Mago dos Reels...")
@@ -21,8 +21,7 @@ except FileNotFoundError as e:
     print(f"❌ ERRO CRÍTICO: Não foi possível encontrar o arquivo de configuração {e.filename}. Encerrando.")
     exit()
 
-# --- NOVO Modelo Pydantic para a Requisição ---
-# Agora esperamos os dados do produto, não apenas uma URL.
+# --- VOLTAMOS A USAR O MODELO DE ENTRADA MANUAL ---
 class ProductInput(BaseModel):
     source_url: str = Field(..., example="https://shopee.com.br/produto-exemplo")
     title: str = Field(..., example="Título incrível do produto")
@@ -32,37 +31,38 @@ class ProductInput(BaseModel):
 app = FastAPI(
     title="API do Mago dos Reels",
     description="Um serviço para transformar dados de produtos em roteiros virais para o Instagram Reels.",
-    version="2.0" # Nova versão do projeto
+    version="2.5" # Versão de fluxo manual com prompt enriquecido
 )
 
-# --- Funções Auxiliares (A mesma lógica de prompt) ---
-def construir_prompt_final(dados_produto: dict) -> str:
+# --- Funções Auxiliares (Adaptadas) ---
+def construir_prompt_final(title: str, description: str) -> str:
     """
-    Combina as partes OTIMIZADAS do prompt com os dados do produto.
+    Combina o PROMPT COMPLETO com os dados do produto fornecidos manualmente.
     """
-    persona = PROMPTS_CONFIG.get("persona", {})
-    output_protocol = PROMPTS_CONFIG.get("output_generation_protocol", {})
-    final_mandate = PROMPTS_CONFIG.get("final_review_mandate", "")
+    # Usamos o prompt.json inteiro como o DNA e as instruções para a IA
+    instrucoes_dna = json.dumps(PROMPTS_CONFIG, indent=2, ensure_ascii=False)
     
-    # Converte o dicionário de dados do produto em uma string legível
-    contexto_produto = "\n".join([f"- {chave}: {valor}" for chave, valor in dados_produto.items()])
+    # Criamos um objeto com os dados que o usuário forneceu
+    dados_manuais = {
+        "title": title,
+        "description": description
+    }
+    dados_formatados = json.dumps(dados_manuais, indent=2, ensure_ascii=False)
 
-    # Monta um prompt muito mais enxuto e direto
-    prompt_completo = f"""
-### INSTRUÇÕES:
-- **Sua Persona:** {persona.get('role', '')}
-- **Tarefa:** Analise os dados brutos do produto abaixo e crie um roteiro para um vídeo no Instagram Reels.
-- **Regra Final:** {final_mandate}
+    prompt_final = f"""
+Você seguirá RIGOROSAMENTE as regras, persona e formato de saída definidos no JSON de instruções abaixo.
+Sua tarefa é analisar os DADOS BRUTOS DO PRODUTO fornecidos e gerar a saída solicitada.
 
-### DADOS BRUTOS DO PRODUTO:
-{contexto_produto}
+### INSTRUÇÕES (SEU DNA):
+{instrucoes_dna}
 
-### ESTRUTURA DE SAÍDA JSON OBRIGATÓRIA:
-{json.dumps(output_protocol.get('object_structure', {}), indent=2, ensure_ascii=False)}
+### DADOS BRUTOS DO PRODUTO PARA ANÁLISE:
+{dados_formatados}
 """
-    return prompt_completo.strip()
+    return prompt_final.strip()
 
 async def execute_openrouter_request(prompt_final: str) -> dict:
+    # Esta função não precisa de alterações, ela continua perfeita.
     OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
     if not OPENROUTER_KEY:
         raise HTTPException(status_code=401, detail="A chave OPENROUTER_API_KEY não foi encontrada no ambiente.")
@@ -70,16 +70,9 @@ async def execute_openrouter_request(prompt_final: str) -> dict:
     service_config = CONFIG.get("servicos", {}).get("gerador_principal", {})
     model_id = service_config.get("id_openrouter")
     
-    # Adicionando uma verificação explícita para o bug
-    if not model_id:
-        raise HTTPException(status_code=500, detail="BUG DETECTADO: O 'id_openrouter' não foi encontrado ou é nulo no arquivo de configuração. Verifique o caminho e o conteúdo de 'config_modelo_local.json'.")
-    
-    # --- CABEÇALHOS ENRIQUECIDOS ---
     headers = {
         "Authorization": f"Bearer {OPENROUTER_KEY}",
-        # Informa à OpenRouter a origem da requisição (boa prática)
-        "HTTP-Referer": "https://github.com/seu-usuario/reels-shopee", 
-        # Identifica sua aplicação (substitua pelo nome do seu projeto)
+        "HTTP-Referer": "https://github.com/nielgomes/mineradorX", 
         "X-Title": "MagoDosReels",
     }
     
@@ -93,7 +86,6 @@ async def execute_openrouter_request(prompt_final: str) -> dict:
     }
 
     try:
-        # Aumentamos o timeout como uma garantia extra
         async with httpx.AsyncClient(timeout=600.0) as client:
             print(f"\n-> Enviando análise para o modelo: {model_id}...")
             response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=json_data)
@@ -102,29 +94,24 @@ async def execute_openrouter_request(prompt_final: str) -> dict:
             content_str = data['choices'][0]['message']['content']
             return json.loads(content_str)
     except httpx.TimeoutException:
-        raise HTTPException(status_code=408, detail="A requisição para a OpenRouter expirou (Timeout). O modelo pode estar sobrecarregado ou a rede instável.")
+        raise HTTPException(status_code=408, detail="A requisição para a OpenRouter expirou (Timeout).")
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=f"Erro da API do OpenRouter: {e.response.text}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro inesperado na chamada do serviço de nuvem: {e}")
 
-# --- Endpoint Principal Simplificado ---
+# --- Endpoint Principal (Lógica Revertida para Fluxo Único) ---
 @app.post("/gerar_roteiro_reels", summary="Gera Roteiro de Reels a partir de dados manuais")
 async def gerar_roteiro_reels(request: ProductInput):
-    # A lógica de scraping e o loop foram removidos.
-    # Agora processamos uma entrada de cada vez.
-    
-    # Construímos o dicionário de dados diretamente da requisição.
-    dados_produto = {
-        "source_url": request.source_url,
-        "title": request.title,
-        "description": request.description
-    }
-
-    prompt_final = construir_prompt_final(dados_produto)
-    
+    # A lógica de loop e chamada ao scraper foi removida.
+    # Processamos uma entrada de cada vez, diretamente.
     try:
+        prompt_final = construir_prompt_final(request.title, request.description)
         roteiro_gerado = await execute_openrouter_request(prompt_final)
+        # Adicionamos a source_url na resposta final para manter a consistência
+        roteiro_gerado["source_url"] = request.source_url
         return roteiro_gerado
     except HTTPException as e:
         return {"source_url": request.source_url, "error": f"Falha na geração pela IA: {e.detail}"}
+    except Exception as e:
+        return {"source_url": request.source_url, "error": f"Erro inesperado no processamento: {str(e)}"}
